@@ -19,10 +19,9 @@ export const getProducts: RequestHandler = async (req, res) => {
       if (max_price !== undefined) variantFilter.some.price.lte = max_price;
     }
 
-    const where: any = {
-      category: category ? { category_name: { equals: category, mode: "insensitive" as any } } : undefined,
-      variants: variantFilter,
-    };
+    const where: any = {};
+    if (category) where.category = { category_name: { equals: category, mode: "insensitive" as any } };
+    if (variantFilter) where.variants = variantFilter;
 
     if (search) {
       const searchWords = search.trim().split(/\s+/).filter(Boolean);
@@ -59,9 +58,9 @@ export const getProducts: RequestHandler = async (req, res) => {
       },
       data: products,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[products] getProducts error:", err);
-    res.status(500).json({ error: "Failed to fetch products" });
+    res.status(500).json({ error: "Failed to fetch products", debug: err?.message, code: err?.code, meta: err?.meta });
   }
 };
 
