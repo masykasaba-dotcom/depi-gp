@@ -64,6 +64,25 @@ export const getProducts: RequestHandler = async (req, res) => {
   }
 };
 
+export const getFeaturedProducts: RequestHandler = async (_req, res) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: { is_featured: true },
+      take: 12,
+      include: {
+        category: true,
+        variants: true,
+        images: { where: { is_primary: true } },
+      },
+      orderBy: { product_id: "desc" },
+    });
+    res.json({ data: products });
+  } catch (err: any) {
+    console.error("[products] getFeaturedProducts error:", err);
+    res.status(500).json({ error: "Failed to fetch featured products", debug: err?.message });
+  }
+};
+
 export const getProductById: RequestHandler = async (req, res) => {
   try {
     const id = parseInt(req.params.id as string);
