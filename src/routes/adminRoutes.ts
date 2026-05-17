@@ -9,6 +9,10 @@ import {
   adminLogin,
 } from "../controllers/adminController";
 import { shipOrder } from "../controllers/shippingController";
+import {
+  createIngredient, updateIngredient, deleteIngredient,
+  addIngredientToProduct, removeIngredientFromProduct,
+} from "../controllers/ingredientController";
 import { authenticateToken, authorizeRoles } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -34,6 +38,13 @@ router.put("/variants/:id/stock", updateVariantStock as RequestHandler);
 router.put("/variants/:variantId", updateVariant as RequestHandler);
 router.delete("/variants/:variantId", deleteVariant as RequestHandler);
 
+// Product Ingredients ─────────────────────────────────────────────────────────
+router.post("/products/:productId/ingredients", addIngredientToProduct as RequestHandler);
+router.delete("/products/:productId/ingredients/:ingredientId", removeIngredientFromProduct as RequestHandler);
+router.post("/ingredients", createIngredient as RequestHandler);
+router.put("/ingredients/:id", updateIngredient as RequestHandler);
+router.delete("/ingredients/:id", deleteIngredient as RequestHandler);
+
 // Categories ──────────────────────────────────────────────────────────────────
 router.post("/categories", createCategory as RequestHandler);
 router.put("/categories/:id", updateCategory as RequestHandler);
@@ -50,3 +61,4 @@ router.get("/customers", getCustomers as RequestHandler);
 router.get("/customers/:id", getCustomerById as RequestHandler);
 
 export default router;
+

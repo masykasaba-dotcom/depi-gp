@@ -4,6 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import prisma from "./config/prisma";
+
+// ── Existing routes ───────────────────────────────────────────────────────────
 import authRoutes from "./routes/authRoutes";
 import productRoutes from "./routes/productRoutes";
 import cartRoutes from "./routes/cartRoutes";
@@ -17,6 +19,23 @@ import shippingRoutes from "./routes/shippingRoutes";
 import dashboardRoutes from "./routes/dashboardRoutes";
 import addressRoutes from "./routes/addressRoutes";
 import webhookRoutes from "./routes/webhookRoutes";
+
+// ── New routes ────────────────────────────────────────────────────────────────
+import wishlistRoutes from "./routes/wishlistRoutes";
+import ingredientRoutes from "./routes/ingredientRoutes";
+import contactRoutes from "./routes/contactRoutes";
+import faqRoutes from "./routes/faqRoutes";
+import couponRoutes from "./routes/couponRoutes";
+import flashSaleRoutes from "./routes/flashSaleRoutes";
+import returnRoutes from "./routes/returnRoutes";
+import loyaltyRoutes from "./routes/loyaltyRoutes";
+import cmsRoutes from "./routes/cmsRoutes";
+import blogRoutes from "./routes/blogRoutes";
+import storeSettingsRoutes from "./routes/storeSettingsRoutes";
+import shippingRuleRoutes from "./routes/shippingRuleRoutes";
+import analyticsRoutes from "./routes/analyticsRoutes";
+import auditLogRoutes from "./routes/auditLogRoutes";
+import adminUsersRoutes from "./routes/adminUsersRoutes";
 
 const app = express();
 app.set("trust proxy", 1); // Trust the reverse proxy to get correct Client IP
@@ -43,9 +62,9 @@ const authLimiter = rateLimit({
   message: { error: "Too many attempts. Please try again in 15 minutes." },
 });
 
+// ── Existing routes ───────────────────────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/admin/login", authLimiter);
-
 app.use("/api/cart", cartRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/survey", surveyRoutes);
@@ -58,6 +77,24 @@ app.use("/api", orderRoutes);
 app.use("/api", reviewRoutes);
 app.use("/api", shippingRoutes);
 
+// ── New routes ────────────────────────────────────────────────────────────────
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/ingredients", ingredientRoutes);
+app.use("/api/contact", contactRoutes);
+app.use("/api/faqs", faqRoutes);
+app.use("/api/coupons", couponRoutes);
+app.use("/api/flash-sales", flashSaleRoutes);
+app.use("/api/returns", returnRoutes);
+app.use("/api/loyalty", loyaltyRoutes);
+app.use("/api/cms", cmsRoutes);
+app.use("/api/blog", blogRoutes);
+app.use("/api/store-settings", storeSettingsRoutes);
+app.use("/api/shipping-rules", shippingRuleRoutes);
+app.use("/api/admin/analytics", analyticsRoutes);
+app.use("/api/admin/audit-logs", auditLogRoutes);
+app.use("/api/admin/users", adminUsersRoutes);
+
+// ── Health check ───────────────────────────────────────────────────────────────
 app.get("/api/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
