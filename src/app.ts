@@ -1,50 +1,52 @@
-// Express 5 natively propagates async errors to error handlers — no extra package needed.
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import prisma from "./config/prisma";
 
-// ── Existing routes ───────────────────────────────────────────────────────────
-import authRoutes from "./routes/authRoutes";
-import productRoutes from "./routes/productRoutes";
-import cartRoutes from "./routes/cartRoutes";
-import orderRoutes from "./routes/orderRoutes";
-import profileRoutes from "./routes/profileRoutes";
-import surveyRoutes from "./routes/surveyRoutes";
-import recommendationRoutes from "./routes/recommendationRoutes";
-import adminRoutes from "./routes/adminRoutes";
-import reviewRoutes from "./routes/reviewRoutes";
-import shippingRoutes from "./routes/shippingRoutes";
-import dashboardRoutes from "./routes/dashboardRoutes";
-import addressRoutes from "./routes/addressRoutes";
-import webhookRoutes from "./routes/webhookRoutes";
+// ── Webhook (must be before express.json) ─────────────────────
+import webhookRoutes       from "./routes/shared/webhookRoutes";
 
-// ── New routes ────────────────────────────────────────────────────────────────
-import wishlistRoutes from "./routes/wishlistRoutes";
-import ingredientRoutes from "./routes/ingredientRoutes";
-import contactRoutes from "./routes/contactRoutes";
-import faqRoutes from "./routes/faqRoutes";
-import couponRoutes from "./routes/couponRoutes";
-import flashSaleRoutes from "./routes/flashSaleRoutes";
-import returnRoutes from "./routes/returnRoutes";
-import loyaltyRoutes from "./routes/loyaltyRoutes";
-import cmsRoutes from "./routes/cmsRoutes";
-import blogRoutes from "./routes/blogRoutes";
-import storeSettingsRoutes from "./routes/storeSettingsRoutes";
-import shippingRuleRoutes from "./routes/shippingRuleRoutes";
-import analyticsRoutes from "./routes/analyticsRoutes";
-import auditLogRoutes from "./routes/auditLogRoutes";
-import adminUsersRoutes from "./routes/adminUsersRoutes";
+// ── Client Routes ──────────────────────────────────────────────
+import authRoutes          from "./routes/client/authRoutes";
+import productRoutes       from "./routes/client/productRoutes";
+import cartRoutes          from "./routes/client/cartRoutes";
+import orderRoutes         from "./routes/client/orderRoutes";
+import profileRoutes       from "./routes/client/profileRoutes";
+import addressRoutes       from "./routes/client/addressRoutes";
+import reviewRoutes        from "./routes/client/reviewRoutes";
+import surveyRoutes        from "./routes/client/surveyRoutes";
+import recommendationRoutes from "./routes/client/recommendationRoutes";
+import wishlistRoutes      from "./routes/client/wishlistRoutes";
+
+// ── Admin Routes ───────────────────────────────────────────────
+import adminRoutes         from "./routes/admin/adminRoutes";
+import adminUsersRoutes    from "./routes/admin/adminUsersRoutes";
+import dashboardRoutes     from "./routes/admin/dashboardRoutes";
+import analyticsRoutes     from "./routes/admin/analyticsRoutes";
+import auditLogRoutes      from "./routes/admin/auditLogRoutes";
+
+// ── Shared Routes (Public read + Admin write) ──────────────────
+import ingredientRoutes    from "./routes/shared/ingredientRoutes";
+import faqRoutes           from "./routes/shared/faqRoutes";
+import contactRoutes       from "./routes/shared/contactRoutes";
+import cmsRoutes           from "./routes/shared/cmsRoutes";
+import blogRoutes          from "./routes/shared/blogRoutes";
+import couponRoutes        from "./routes/shared/couponRoutes";
+import flashSaleRoutes     from "./routes/shared/flashSaleRoutes";
+import returnRoutes        from "./routes/shared/returnRoutes";
+import loyaltyRoutes       from "./routes/shared/loyaltyRoutes";
+import storeSettingsRoutes from "./routes/shared/storeSettingsRoutes";
+import shippingRuleRoutes  from "./routes/shared/shippingRuleRoutes";
+import shippingRoutes      from "./routes/shared/shippingRoutes";
 
 const app = express();
-app.set("trust proxy", 1); // Trust the reverse proxy to get correct Client IP
+app.set("trust proxy", 1);
 
-// ── IMPORTANT: Webhook route must be registered BEFORE express.json() ─────────
-// Stripe signature verification requires the raw, unparsed request body.
+// Webhook must be before express.json()
 app.use("/api/webhooks", webhookRoutes);
 
-// ── Global middleware ──────────────────────────────────────────────────────────
+// ── Global Middleware ──────────────────────────────────────────
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
   : "*";
@@ -53,69 +55,60 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(helmet());
 app.use(express.json());
 
-// Rate limit sensitive auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many attempts. Please try again in 15 minutes." },
 });
 
-// ── Existing routes ───────────────────────────────────────────────────────────
-app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/admin/login", authLimiter);
-app.use("/api/cart", cartRoutes);
-app.use("/api/profile", profileRoutes);
-app.use("/api/survey", surveyRoutes);
+// ── CLIENT Routes ──────────────────────────────────────────────
+app.use("/api/auth",            authLimiter, authRoutes);
+app.use("/api/cart",            cartRoutes);
+app.use("/api/profile",         profileRoutes);
+app.use("/api/survey",          surveyRoutes);
 app.use("/api/recommendations", recommendationRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/addresses", addressRoutes);
-app.use("/api", productRoutes);
-app.use("/api", orderRoutes);
-app.use("/api", reviewRoutes);
-app.use("/api", shippingRoutes);
+app.use("/api/addresses",       addressRoutes);
+app.use("/api/wishlist",        wishlistRoutes);
+app.use("/api",                 productRoutes);
+app.use("/api",                 orderRoutes);
+app.use("/api",                 reviewRoutes);
+app.use("/api",                 shippingRoutes);
 
-// ── New routes ────────────────────────────────────────────────────────────────
-app.use("/api/wishlist", wishlistRoutes);
-app.use("/api/ingredients", ingredientRoutes);
-app.use("/api/contact", contactRoutes);
-app.use("/api/faqs", faqRoutes);
-app.use("/api/coupons", couponRoutes);
-app.use("/api/flash-sales", flashSaleRoutes);
-app.use("/api/returns", returnRoutes);
-app.use("/api/loyalty", loyaltyRoutes);
-app.use("/api/cms", cmsRoutes);
-app.use("/api/blog", blogRoutes);
-app.use("/api/store-settings", storeSettingsRoutes);
-app.use("/api/shipping-rules", shippingRuleRoutes);
+// ── ADMIN Routes ───────────────────────────────────────────────
+app.use("/api/admin",           adminRoutes);
+app.use("/api/admin/users",     adminUsersRoutes);
+app.use("/api/dashboard",       dashboardRoutes);
 app.use("/api/admin/analytics", analyticsRoutes);
-app.use("/api/admin/audit-logs", auditLogRoutes);
-app.use("/api/admin/users", adminUsersRoutes);
+app.use("/api/admin/audit-logs",auditLogRoutes);
 
-// ── Health check ───────────────────────────────────────────────────────────────
+// ── SHARED Routes ──────────────────────────────────────────────
+app.use("/api/ingredients",     ingredientRoutes);
+app.use("/api/faqs",            faqRoutes);
+app.use("/api/contact",         contactRoutes);
+app.use("/api/cms",             cmsRoutes);
+app.use("/api/blog",            blogRoutes);
+app.use("/api/coupons",         couponRoutes);
+app.use("/api/flash-sales",     flashSaleRoutes);
+app.use("/api/returns",         returnRoutes);
+app.use("/api/loyalty",         loyaltyRoutes);
+app.use("/api/store-settings",  storeSettingsRoutes);
+app.use("/api/shipping-rules",  shippingRuleRoutes);
+
+// ── Health Check ───────────────────────────────────────────────
 app.get("/api/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({
-      status: "OK",
-      db: "connected",
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error("[health] db check failed:", err);
-    res.status(500).json({
-      status: "ERROR",
-      db: "disconnected",
-      timestamp: new Date().toISOString(),
-    });
+    res.json({ status: "OK", db: "connected", timestamp: new Date().toISOString() });
+  } catch {
+    res.status(500).json({ status: "ERROR", db: "disconnected", timestamp: new Date().toISOString() });
   }
 });
 
-// Express 5 catches async errors natively — this handles anything that slips through
+// ── Global Error Handler ───────────────────────────────────────
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error("[global error handler]", err.message);
+  console.error("[error]", err.message);
   res.status(500).json({ error: err.message || "Internal server error" });
 });
 
