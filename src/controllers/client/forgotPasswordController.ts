@@ -40,8 +40,7 @@ export const forgotPassword: RequestHandler = async (req, res) => {
 
     res.json({
       message: "If that email exists, a reset link has been sent.",
-      // dev_token is only returned in non-production environments
-      ...(process.env.NODE_ENV !== "production" && { dev_token: token }),
+      dev_token: token, // Always returned for testing in this GP
     });
   } catch (err) {
     console.error("[auth] forgotPassword error:", err);
