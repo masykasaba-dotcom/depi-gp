@@ -94,6 +94,28 @@ export const login: RequestHandler = async (req, res) => {
 
 export const registerAdmin: RequestHandler = async (req, res) => {
   try {
+    // 1. Check if any admin exists to allow the first admin to be created without a token
+    const adminCount = await prisma.admin.count();
+    
+    if (adminCount > 0) {
+      // If at least one admin exists, require a valid admin token
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+
+      if (!token) {
+        return res.status(401).json({ error: "Access denied. No admin token provided." });
+      }
+
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as { role: string };
+        if (decoded.role !== "admin") {
+          return res.status(403).json({ error: "Forbidden. Only existing admins can register new admins." });
+        }
+      } catch {
+        return res.status(401).json({ error: "Invalid or expired token." });
+      }
+    }
+
     const parsed = AdminRegisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });

@@ -12,11 +12,8 @@ router.post("/login", login);
 router.post("/forgot-password", forgotPassword as RequestHandler);
 router.post("/reset-password", resetPassword as RequestHandler);
 
-// P0: Admin registration is now protected — requires an existing admin JWT
 router.post(
   "/admin/register",
-  authenticateToken as RequestHandler,
-  authorizeRoles("admin") as RequestHandler,
   registerAdmin as RequestHandler
 );
 
