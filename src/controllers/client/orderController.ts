@@ -29,9 +29,39 @@ export const createOrder: RequestHandler = async (req, res) => {
       subtotal += Number(item.variant.price) * item.quantity;
     }
 
-    const shipping = 50.00;
-    const tax = subtotal * 0.14;
-    const total = subtotal + shipping + tax;
+    // ─── Coupon Validation & Application ─────────────────────────
+    const { coupon_code } = req.body;
+    let discount = 0;
+    let couponId: number | null = null;
+
+    if (coupon_code) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: coupon_code.toUpperCase() }
+      });
+      if (coupon && coupon.is_active) {
+        const isExpired = coupon.expires_at && new Date() > coupon.expires_at;
+        const isLimitReached = coupon.max_uses !== null && coupon.used_count >= coupon.max_uses;
+        const isMinAmountSatisfied = !coupon.min_order_amount || subtotal >= Number(coupon.min_order_amount);
+
+        const alreadyUsed = await prisma.couponUsage.findFirst({
+          where: { coupon_id: coupon.coupon_id, customer_id: customerId }
+        });
+
+        if (!isExpired && !isLimitReached && isMinAmountSatisfied && !alreadyUsed) {
+          couponId = coupon.coupon_id;
+          if (coupon.discount_type === "percentage") {
+            discount = (subtotal * Number(coupon.discount_value)) / 100;
+          } else {
+            discount = Math.min(Number(coupon.discount_value), subtotal);
+          }
+          discount = parseFloat(discount.toFixed(2));
+        }
+      }
+    }
+
+    const shipping = subtotal >= 150 ? 0 : 15;
+    const tax = parseFloat((subtotal * 0.08).toFixed(2));
+    const total = parseFloat((subtotal + shipping + tax - discount).toFixed(2));
 
     // Run DB work first — create order, atomically decrement stock (race-safe), clear cart
     const newOrder = await prisma.$transaction(async (tx: any) => {
@@ -41,9 +71,27 @@ export const createOrder: RequestHandler = async (req, res) => {
           subtotal,
           tax,
           shipping,
+          discount,
           total,
+          coupon_id: couponId
         }
       });
+
+      // Update coupon usage if applied
+      if (couponId) {
+        await tx.coupon.update({
+          where: { coupon_id: couponId },
+          data: { used_count: { increment: 1 } }
+        });
+
+        await tx.couponUsage.create({
+          data: {
+            coupon_id: couponId,
+            customer_id: customerId,
+            order_id: order.order_id
+          }
+        });
+      }
 
       for (const item of cart.items) {
         await tx.order_Item.create({
