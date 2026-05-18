@@ -201,7 +201,7 @@ export const getOrderById: RequestHandler = async (req, res) => {
       where: { order_id: orderId },
       include: {
         items: {
-          include: { variant: { include: { product: true } } }
+          include: { variant: { include: { product: { include: { images: true } } } } }
         },
         payment: true
       }
