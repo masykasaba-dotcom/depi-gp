@@ -111,8 +111,12 @@ export const registerAdmin: RequestHandler = async (req, res) => {
         if (decoded.role !== "admin") {
           return res.status(403).json({ error: "Forbidden. Only existing admins can register new admins." });
         }
-      } catch {
-        return res.status(401).json({ error: "Invalid or expired token." });
+      } catch (err: any) {
+        console.error("JWT verify error in registerAdmin:", err);
+        return res.status(401).json({ 
+          error: "Invalid or expired token.", 
+          details: err.message || String(err) 
+        });
       }
     }
 
