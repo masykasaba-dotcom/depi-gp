@@ -11,7 +11,7 @@ export const getRevenue: RequestHandler = async (req, res) => {
     const orders = await prisma.order.findMany({
       where: {
         created_at: { gte: since },
-        status: { in: ["paid", "shipped", "delivered"] },
+        status: { not: "cancelled" }, // include pending, processing, paid, shipped, delivered
       },
       select: { created_at: true, total: true, discount: true },
       orderBy: { created_at: "asc" },
